@@ -1,5 +1,26 @@
-<div className="parent" onClick={handleparent}>
-    <div className="child" onClick={handleparent}>
-
-    </div>
-</div>
+{
+    "user_id":34334343,
+    "products":[
+    {
+        id:1
+    },
+    {
+        id:2
+    },
+    {
+        id:13
+    },
+    {
+        id:14
+    },
+    {
+        id:15
+    },
+    {
+        id:16
+    },
+    {
+        id:17
+    }
+]
+    }
