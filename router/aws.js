@@ -32,11 +32,12 @@ const upload = multer({
 // Define your routes
 router.post('/upload', upload.single('image'), (req, res, next) => {
   const fileUrl = req.file; // Access the uploaded file URL
+  
   res.send(fileUrl); // Send back the file URL
 });
 router.post('/multiple', upload.array('image',3), (req, res, next) => {
   const fileUrl = req.files; // Access the uploaded file URL
-  console.log("here",fileUrl)
+  console.log("here",req)
   res.send(fileUrl); // Send back the file URL
 });
 router.delete("/delete",(req,res)=>{
