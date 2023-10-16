@@ -74,7 +74,8 @@ router.use(session({
 
 
 
-const passport = require("passport")
+const passport = require("passport");
+const { url } = require("./url");
 const GoogleStrategy=require("passport-google-oauth20").Strategy
 
 passport.serializeUser(function(user,done){
@@ -87,7 +88,7 @@ passport.deserializeUser(function(user,done){
 passport.use(new GoogleStrategy({
     clientID:"287107085331-i2rfnal24iu0mhr9u5l7eocnt278voec.apps.googleusercontent.com",
     clientSecret:"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",
-    callbackURL:"http://localhost:8000/google/callback",
+    callbackURL:`${url}google/callback`,
     passReqToCallback:true
 },function(request,accessToken,refreshToken,profile,done){
     console.log(profile)
