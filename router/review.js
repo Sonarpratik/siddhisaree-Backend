@@ -70,6 +70,7 @@ const modifiedReviews = data.map(review => ({
   product_id: review.product_id,
   rating: review.rating,
   description: review.description,
+  date:review.date,
   __v: review.__v
 }));
 
