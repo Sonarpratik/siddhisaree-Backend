@@ -70,13 +70,17 @@ router.get("/api/product", async (req, res) => {
     // const sortedProductSizes = resa.product_size.slice().sort();
     // console.log(sortedProductSizes)
     // Fetch data with pagination using skip() and limit()
-    let query = Product.find(resa);
+    let query={}
+    if(sort){
 
-    if (sort) {
-      query = query.sort({ product_price: sort });
+       query =await Product.find(resa).sort({ product_price: sort }).skip(startIndex).limit(limit);
+    }else{
+       query =await Product.find(resa).skip(startIndex).limit(limit);
+
     }
 
-    const data = await query.skip(startIndex).limit(limit);
+
+    const data =  query;
     // Calculate total pages for pagination
     const totalPages = Math.ceil(totalCount / limit);
     // const product = await Product.find();

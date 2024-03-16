@@ -14,13 +14,12 @@ const Product = require("../models/productSchema");
 
 router.post("/api/cart", Authenticate, async (req, res) => {
   try {
-    const get_product=req.body
+    const get_product = req.body;
     const new_updatedObject = {
       ...get_product,
-      product_id: get_product._id,// Optional, to remove the original _id field if needed
+      product_id: get_product._id, // Optional, to remove the original _id field if needed
     };
-  delete new_updatedObject._id;
-
+    delete new_updatedObject._id;
 
     const { _id } = req.rootUser;
     const User = await Cart.findOne({ user_id: _id });
@@ -36,60 +35,55 @@ router.post("/api/cart", Authenticate, async (req, res) => {
       await product.save();
       res.status(201).send(structure);
     } else {
+      const check = User.products.find(
+        (item) => item.product_id === new_updatedObject.product_id
+      );
+      if (!check) {
+        console.log("hello", check);
 
-      const check=User.products.find((item)=>item.product_id===new_updatedObject.product_id)
-if(!check){
+        User?.products.push(new_updatedObject);
+        console.log("update cart");
+        const did = await User.save();
+        res.status(200).send(did);
+      } else {
+        console.log("hello", check);
+        console.log("hello", new_updatedObject.product_id);
 
-
-  console.log("hello",check)
-
-  User?.products.push(new_updatedObject);
-  console.log("update cart");
-  const did = await User.save();
-  res.status(200).send(did);
-
-}else{
-
-  console.log("hello",check)
-  console.log("hello",new_updatedObject.product_id)
-
-  res.status(200).send(User);
-}
-}
+        res.status(200).send(User);
+      }
+    }
   } catch (err) {
     console.log(err);
     res.status(400).send("Cart Not Created");
   }
 });
-router.patch("/api/cart/quantity/:id",Authenticate,async(req,res)=>{
-  try{
+router.patch("/api/cart/quantity/:id", Authenticate, async (req, res) => {
+  try {
     // const { _id } = req.rootUser;
-    const user_id=req.params.id;
-    const {_id,quantity}=req.body
+    const user_id = req.params.id;
+    const { _id, quantity } = req.body;
     const User = await Cart.findOne({ user_id: user_id });
     if (!User) {
-  
-      res.status(404).json({"data":"Cart Not Found"});
+      res.status(404).json({ data: "Cart Not Found" });
     } else {
       console.log(User);
 
-      const productToUpdate = User.products.find(product => product.product_id === _id);
+      const productToUpdate = User.products.find(
+        (product) => product.product_id === _id
+      );
 
       if (productToUpdate) {
         productToUpdate.quantity = quantity;
         // res.json({ message: "Quantity updated successfully" });
-        
       }
-      await User.save()
-      res.status(200).send(User)
+      await User.save();
+      res.status(200).send(User);
     }
-
-
-  }catch(error){
-    console.log(error)
-    res.status(500).json({"data":"Error While Changing Quantity"})
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ data: "Error While Changing Quantity" });
   }
-})
+});
 
 router.post("/api/remove/cart", Authenticate, async (req, res) => {
   try {
@@ -97,17 +91,16 @@ router.post("/api/remove/cart", Authenticate, async (req, res) => {
     const User = await Cart.findOne({ user_id: _id });
     console.log();
     if (!User) {
-  
-      res.status(404).json({"data":"Cart Not Found"});
+      res.status(404).json({ data: "Cart Not Found" });
     } else {
       console.log(User);
 
-      User.products = User.products.filter(product => {
+      User.products = User.products.filter((product) => {
         const productId = product?.product_id?.toString();
         return productId !== req.body._id;
       });
 
-await User.save();
+      await User.save();
       res.status(200).send(User);
     }
   } catch (err) {
@@ -121,17 +114,16 @@ router.post("/api/remove/wishlist", Authenticate, async (req, res) => {
     const User = await wishlist.findOne({ user_id: _id });
     console.log();
     if (!User) {
-  
-      res.status(404).json({"data":"Wishlist Not Found"});
+      res.status(404).json({ data: "Wishlist Not Found" });
     } else {
       console.log(User);
 
-      User.products = User.products.filter(product => {
+      User.products = User.products.filter((product) => {
         const productId = product?.product_id?.toString();
         return productId !== req.body._id;
       });
 
-await User.save();
+      await User.save();
       res.status(200).send(User);
     }
   } catch (err) {
@@ -140,38 +132,35 @@ await User.save();
   }
 });
 
-
-
 //GET CART BY USER ID AND ADMIN OR USER TOKEN
 router.get("/api/cart/:id", IsAdminAndUser, async (req, res) => {
   try {
     const userId = req.params.id;
 
     const cart = await Cart.findOne({ user_id: userId });
-    
 
     if (!cart) {
       res.status(200).send("no data");
     } else {
       const productIds = cart?.products?.map((item) => item.product_id);
-const productx=await Product.find({_id:{ $in: productIds } })
-const new_cart={
-  _id:cart._id,
-  user_id:cart.user_id,
-  products:productx
-}
+      const productx = await Product.find({ _id: { $in: productIds } });
+      const new_cart = {
+        _id: cart._id,
+        user_id: cart.user_id,
+        products: productx,
+      };
 
-new_cart.products=productx
+      new_cart.products = productx;
 
-new_cart.products.forEach((newProduct) => {
-  // Find the corresponding product in oldData
-  const matchingProduct = cart?.products?.find(
-    (oldProduct) => oldProduct.product_id+"s" === newProduct._id+"s"
-  );
-  if (matchingProduct) {
-    newProduct.quantity = matchingProduct.quantity;
-  }
-});
+      new_cart.products.forEach((newProduct) => {
+        // Find the corresponding product in oldData
+        const matchingProduct = cart?.products?.find(
+          (oldProduct) => oldProduct.product_id + "s" === newProduct._id + "s"
+        );
+        if (matchingProduct) {
+          newProduct.quantity = matchingProduct.quantity;
+        }
+      });
 
       res.status(200).send(new_cart);
     }
@@ -183,13 +172,12 @@ new_cart.products.forEach((newProduct) => {
 
 router.post("/api/wishlist", Authenticate, async (req, res) => {
   try {
-    const get_product=req.body
+    const get_product = req.body;
     const new_updatedObject = {
       ...get_product,
-      product_id: get_product._id// Optional, to remove the original _id field if needed
-  };
-  delete new_updatedObject._id;
-
+      product_id: get_product._id, // Optional, to remove the original _id field if needed
+    };
+    delete new_updatedObject._id;
 
     const { _id } = req.rootUser;
     const User = await wishlist.findOne({ user_id: _id });
@@ -205,58 +193,53 @@ router.post("/api/wishlist", Authenticate, async (req, res) => {
       await product.save();
       res.status(201).send(structure);
     } else {
+      const check = User.products.find(
+        (item) => item.product_id === new_updatedObject.product_id
+      );
+      if (!check) {
+        console.log("hello", check);
 
-      const check=User.products.find((item)=>item.product_id===new_updatedObject.product_id)
-if(!check){
+        User?.products.push(new_updatedObject);
+        console.log("update cart");
+        const did = await User.save();
+        res.status(200).send(did);
+      } else {
+        console.log("hello", check);
+        console.log("hello", new_updatedObject.product_id);
 
-
-  console.log("hello",check)
-
-  User?.products.push(new_updatedObject);
-  console.log("update cart");
-  const did = await User.save();
-  res.status(200).send(did);
-
-}else{
-
-  console.log("hello",check)
-  console.log("hello",new_updatedObject.product_id)
-
-  res.status(200).send(User);
-}
-}
+        res.status(200).send(User);
+      }
+    }
   } catch (err) {
     console.log(err);
     res.status(400).send("Cart Not Created");
   }
 });
 
-
-//Get Wishlist 
+//Get Wishlist
 router.get("/api/wishlist/:id", IsAdminAndUser, async (req, res) => {
   try {
     const userId = req.params.id;
 
     const cart = await wishlist.findOne({ user_id: userId });
-    
 
     if (!cart) {
       res.status(200).send("no data");
     } else {
       const productIds = cart?.products?.map((item) => item.product_id);
-const productx=await Product.find({_id:{ $in: productIds } })
-console.log("prod",productx)
+      const productx = await Product.find({ _id: { $in: productIds } });
+      console.log("prod", productx);
 
-const new_cart={
-  _id:cart._id,
-  user_id:cart.user_id,
-  products:productx
-}
-new_cart.products=productx
-console.log(new_cart)
+      const new_cart = {
+        _id: cart._id,
+        user_id: cart.user_id,
+        products: productx,
+      };
+      new_cart.products = productx;
+      console.log(new_cart);
       res.status(200).send(new_cart);
     }
-  }catch (err) {
+  } catch (err) {
     console.log(err);
     res.status(400).send("Wishlist Not Found");
   }
