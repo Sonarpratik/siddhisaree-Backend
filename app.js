@@ -35,8 +35,8 @@ io = require('socket.io')(http);
 app.get('/payment', function(req, res){
     res.sendFile(__dirname + '/dataFrom.html');
 });
-app.get('/.well-known/pki-validation/117B8B17A66CCF2BE4A552E04D8EBBFC.txt',(req,res)=>{
-  res.sendFile(__dirname + `/117B8B17A66CCF2BE4A552E04D8EBBFC.txt`);
+app.get('/.well-known/pki-validation/6DC00CA3308709EF2CD4A8C253400731.txt',(req,res)=>{
+  res.sendFile(__dirname + `/6DC00CA3308709EF2CD4A8C253400731.txt`);
 
 })
 
