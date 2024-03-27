@@ -22,40 +22,20 @@ const cors = require("cors")
 app.use(cors());
 
 
-http = require('http').Server(app),
-io = require('socket.io')(http);
-    fs = require('fs'),
-    ccav = require('./ccavutil.js'),
-    qs = require('querystring'),
-    ccavReqHandler = require('./ccavRequestHandler.js'),
-    ccavResHandler = require('./ccavResponseHandler.js');
 
 
 
-app.get('/payment', function(req, res){
-    res.sendFile(__dirname + '/dataFrom.html');
-});
 app.get('/.well-known/pki-validation/6DC00CA3308709EF2CD4A8C253400731.txt',(req,res)=>{
   res.sendFile(__dirname + `/6DC00CA3308709EF2CD4A8C253400731.txt`);
 
 })
 
-io.on('connection', function(socket){
-    console.log('a user connected');
-});
 
 app.get('/about', function (req, res){
         res.render('dataFrom.html');
 });
 
-app.post('/ccavRequestHandler', function (request, response){
-    ccavReqHandler.postReq(request, response);
-});
 
-
-app.post('/ccavResponseHandler', function (request, response){
-        ccavResHandler.postRes(request, response);
-});
 
 require('./allFiles/Allfun')
 
@@ -75,6 +55,8 @@ app.use('/aws',require('./router/aws'))
 app.use(require('./router/product'))
 app.use(require('./router/cart'))
 app.use(require('./router/order'))
+app.use(require('./router/payment'))
+
 app.use('/api',require('./router/review'))
 // require('./router/auth')
 

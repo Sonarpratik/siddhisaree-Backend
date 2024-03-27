@@ -267,8 +267,14 @@ router.post("/auth/admin/login", async (req, res) => {
 
 //universal verify
 router.get("/auth/verify", Authenticate, (req, res) => {
-  const { _id, name, email,  billing_address,shipping_address,billing_zip,shipping_zip,billing_phone,shipping_phone,billing_state,billing_city,shipping_state,shipping_city, ...data } = req.rootUser;
-  res.status(200).send({ _id, name, email , billing_address,shipping_address,billing_zip,shipping_zip,billing_phone,shipping_phone,billing_state,billing_city,shipping_state,shipping_city});
+  const {
+    tokens,
+    password,
+    active,
+    ...data
+  } = req.rootUser._doc;
+
+  res.status(200).send(data);
 });
 
 //Only ADMIN AND STAFF
@@ -302,17 +308,17 @@ router.get("/auth/verify/admin", IsAdmin, (req, res) => {
 });
 
 //Only Admin Can Update
-router.patch("/auth/user/:id", IsAdminAndUserAnd_staff_patch_true, async (req, res) => {
+router.patch("/auth/user/:id", IsAdminAndUser, async (req, res) => {
   try {
     const userId = req.params.id;
-    const { password, tokens, _id, ...data } = req.body;
+    const { _id, ...data } = req.body;
     console.log(req.body);
     const did = await User.findByIdAndUpdate({ _id: userId }, data, {
       new: true,
     });
 
-    const {name,email,billing_address,shipping_address,active,...extra}=did
-    res.status(200).send({_id,name,email,billing_address,shipping_address,active});
+    const { password, token, active, ...extra } = did._doc;
+    res.status(200).send(extra);
   } catch (e) {
     console.log(e);
     res.status(404).send("You Dont Hvae the clearnce");

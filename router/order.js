@@ -2,223 +2,285 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv");
+const jst_decode = require("jwt-decode");
+dotenv.config();
 
-const Cart = require("../models/userCartSchema");
 const User = require("../models/userSchema");
+const Admin = require("../models/adminSchema");
+const Product = require("../models/productSchema.js");
+const Cart = require("../models/userCartSchema.js");
+const Order = require("../models/orderSchema.js");
 const {
   Authenticate,
+  IsAdmin,
+  IsSuper,
   IsAdminAndUser,
 } = require("../middleware/authenticate.js");
-const wishlist = require("../models/wishlistSchema");
-const Product = require("../models/productSchema");
-const Order = require("../models/orderSchema");
-function generateUniqueRandomNumber() {
-  const currentTime = new Date().getTime(); // Get current time in milliseconds
-  const random = Math.floor(Math.random() * 100000); // Generate a random integer between 0 and 99999
+const Razorpay = require("razorpay");
+const {
+  getCart,
+  createOrder,
+  emptyCart,
+  cancelOrder,
+  failOrder,
+  successOrder,
+  updateState,
+} = require("./helperFunctions/helper.js");
 
-  // Combine current time and random number to create a unique value
-  const uniqueNumber = currentTime.toString() + random.toString();
-
-  return parseInt(uniqueNumber);
-}
-
-router.post("/api/order", async (req, res) => {
-  try {
-    // const user = new Order(req.body);
-
-    const convertedData = req.body.map((item) => {
-      return {
-        ...item,
-        product_id: item.product_id
-          .replace('new ObjectId("', "")
-          .replace('")', ""),
-      };
-    });
-    console.log("lion", convertedData);
-    const value = await Order.insertMany(convertedData);
-    const Carts = await Cart.findOne({ user_id: req.body[0].user_id });
-    // const structure={
-    //   _id:Carts._id,
-    //   user_id:Carts.user_id,
-    //   products:[]
-    // }
-    Carts.products = [];
-    await Carts.save();
-    console.log(Carts);
-    res.status(201).json("done");
-  } catch (err) {
-    console.log(err);
-    res.status(400).send("Cart Not Createds");
-  }
-});
-router.post("/api/order/cod", async (req, res) => {
-  try {
-    const last_obj = req.body;
-    // const user = new Order(req.body);
-    const obj = {
-      user_id: last_obj.merchant_param5,
-      order_id: last_obj.order_id,
-      billing_address: last_obj.billing_address,
-      shipping_address: last_obj.delivery_address,
-      billing_zip: last_obj.billing_zip,
-      shipping_zip: last_obj.delivery_zip,
-      billing_phone: last_obj.billing_phone,
-      shipping_phone: last_obj.delivery_phone,
-      billing_state: last_obj.billing_state,
-      billing_city: last_obj.billing_city,
-      delivery_state: last_obj.delivery_state,
-      shipping_city: last_obj.delivery_city,
-      shipping_name: last_obj.delivery_name,
-      billing_name: last_obj.billing_name,
-    };
-    const User_Details=await User.findOne({_id:last_obj.merchant_param5})
-    
-    User_Details.shipping_address=last_obj.delivery_address
-    User_Details.billing_zip=last_obj.billing_zip
-    User_Details.shipping_zip=last_obj.delivery_zip
-    User_Details.billing_phone=last_obj.billing_tel
-    User_Details.shipping_phone=last_obj.delivery_tel
-    User_Details.billing_state=last_obj.billing_state
-    User_Details.billing_city=last_obj.billing_city
-    User_Details.shipping_state=last_obj.delivery_state
-    User_Details.shipping_city=last_obj.delivery_city
-    await User_Details.save()
-    console.log("saved")
-    
-    // const value=await Order.insertMany(convertedData)
-    // const Carts = await Cart.findOne({ user_id: req.body[0].user_id });
-    const products = await Product.find({ _id: last_obj.product_ids });
-    const uniqueRandomNumber = generateUniqueRandomNumber();
-
-    const modifiedProducts = products.map((product) => {
-      const {
-        multi_img,
-        quantity,
-        product_price,
-        product_discount,
-        wash_care,
-        product_country_of_origin,
-        product_Work,
-        product_Fabric,
-        _id,
-        product_occasion,
-        product_star,
-        product_name,
-        product_sku,
-        product_img,
-        product_highlight,
-        product_style,
-        product_color,
-        product_size,
-        product_shipping_details,
-        product_description,
-        ...rest
-      } = product; // Destructure _id and get the rest of the fields
-      return {
-        product_id: _id,
-        multi_img,
-        quantity,
-        product_price,
-        product_discount,
-        wash_care,
-        product_country_of_origin,
-        product_Work,
-        product_Fabric,
-        product_occasion,
-        product_star,
-        product_name,
-        product_sku,
-        product_img,
-        product_highlight,
-        product_style,
-        product_color,
-        product_size,
-        product_shipping_details,
-        product_description,
-        ...obj,
-        order_id: uniqueRandomNumber,
-      }; // Create a new object with product_id and the rest of the fields
-    });
-
-    if (last_obj.type === "cart") {
-      console.log("run");
-      const Carts = await Cart.findOne({ user_id: last_obj.merchant_param5 });
-      Carts.products = [];
-      await Carts.save();
-    }
-    const value = await Order.insertMany(modifiedProducts);
-
-    res.status(201).json(value);
-  } catch (err) {
-    console.log(err);
-    res.status(400).send("Cart Not Createds");
-  }
-});
 router.get("/api/order", async (req, res) => {
   try {
-    const { page, limit, sort, ...resa } = req.query;
+    // const userId = req.params.id;
+    const {  sort, ...resa } = req.query;
 
+    const page = parseInt(req.query.page);
+    const limit = req.query.limit;
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
-    const totalCount = await Order.countDocuments(resa);
+    console.log(startIndex)
 
-    let query = Order.find(resa);
+    // Fetch data with pagination using skip() and limit()
+    const order = await Order.find(resa).sort({ created_at: sort })
+    // const order = await Order.find();
 
-    if (sort) {
-      query = query.sort({ date_of_order: sort });
-    }
+    // Calculate total pages for pagination
 
-    const data = await query.skip(startIndex).limit(limit);
-    const totalPages = Math.ceil(totalCount / limit);
+    // Fetch products based on product IDs
+    const productIds = order.map((item) => item.product_id);
 
-    const response = {
-      currentPage: page,
-      totalPages: totalPages,
-      totalItems: totalCount,
-      data: data,
-    };
+    // Fetch products based on product IDs
+    const products = await Product.find({ _id: { $in: productIds } });
 
-    res.status(200).json(response);
-  } catch (err) {
-    console.log(err);
-    res.status(400).send("Cart Not Created");
-  }
-});
+    const cartWithProductDetails = order.map(cartItem => {
+        // Find the corresponding product details for the current cart item
+        const productDetail = products.find(product => product._id.toString() === cartItem.product_id.toString());
+        return {
+          ...cartItem.toObject(), // Convert Mongoose document to plain JavaScript object
+          product: productDetail // Nest product details inside the cart item
+        };
+      });
+    const transformedArray = [];
 
-router.delete("/api/order/:id", async (req, res) => {
-  try {
-    const orderID = req.params.id;
+    cartWithProductDetails.forEach((item) => {
+      const existingOrderIndex = transformedArray.findIndex(
+        (order) => order.order_id === item.order_id
+      );
 
-    const Data = await Order.findByIdAndDelete({ _id: orderID });
-    res.status(200).json(Data);
-  } catch (err) {
-    console.log(err);
-    res.status(400).send("Cart Not Created");
-  }
-});
-router.patch("/api/order/:id", async (req, res) => {
-  try {
-    const orderID = req.params.id;
-    const { _id, order_id, product_id, date_of_order, user_id, ...data } =
-      req.body;
-    console.log(data);
-    const Data = await Order.findByIdAndUpdate({ _id: orderID }, data, {
-      new: true,
+      if (existingOrderIndex === -1) {
+        transformedArray.push({
+          order_id: item.order_id,
+          user_id: item.user_id,
+          count_of_products: 1,
+          created_at: item.created_at,
+          payment: item.payment,
+          billing: item?.billing,
+          shipping: item?.shipping,
+          payment:item?.payment,
+          stage:item?.stage,
+          length:item?.length,
+          breadth:item?.breadth,
+          height:item?.height,
+          weight:item?.weight,
+          active:item?.active,
+
+          product: [
+            {
+              product_id: item.product_id,
+              product: item.product,
+              color: item.color,
+              quantity: item.quantity,
+              //   product:item.product
+              price: item?.price,
+              discount: item?.discount,
+             
+            },
+          ],
+        });
+      } else {
+        transformedArray[existingOrderIndex].count_of_products++;
+        transformedArray[existingOrderIndex].product.push({
+          product_id: item.product_id,
+          color: item.color,
+          quantity: item.quantity,
+          product: item.product,
+
+          // product:item.product
+          price: item?.price,
+          discount: item?.discount,
+    
+        });
+      }
     });
-    res.status(200).json(Data);
+const a=transformedArray.slice(startIndex, parseInt(startIndex) + parseInt(limit));
+
+const totalPages = Math.ceil(transformedArray?.length / limit);
+console.log(startIndex, parseInt(startIndex) + parseInt(limit))
+    const response = {
+      currentPage: parseInt(page),
+      totalPages: totalPages,
+      totalItems: transformedArray?.length,
+      data: a,
+    };
+    res.status(200).send(response);
   } catch (err) {
     console.log(err);
-    res.status(400).send("Cart Not Created");
+    res.status(404).send({ message: "Something Went Wrong" });
   }
 });
-router.get("/api/order/:id", async (req, res) => {
+router.get("/api/order/:id", IsAdminAndUser, async (req, res) => {
   try {
-    const orderID = req.params.id;
-    const Data = await Order.findById({ _id: orderID });
-    res.status(200).json(Data);
+    const userId = req.params.id;
+
+    const order = await Order.find({ user_id: userId ,active:true});
+    // Fetch products based on product IDs
+    const productIds = order.map((item) => item.product_id);
+
+    // Fetch products based on product IDs
+    const products = await Product.find({ _id: { $in: productIds } });
+
+    const cartWithProductDetails = order.map(cartItem => {
+        // Find the corresponding product details for the current cart item
+        const productDetail = products.find(product => product._id.toString() === cartItem.product_id.toString());
+        return {
+          ...cartItem.toObject(), // Convert Mongoose document to plain JavaScript object
+          product: productDetail // Nest product details inside the cart item
+        };
+      });
+    const transformedArray = [];
+
+    cartWithProductDetails.forEach((item) => {
+      const existingOrderIndex = transformedArray.findIndex(
+        (order) => order.order_id === item.order_id
+      );
+
+      if (existingOrderIndex === -1) {
+        transformedArray.push({
+          order_id: item.order_id,
+          count_of_products: 1,
+          created_at: item.created_at,
+          payment: item.payment,
+          billing: item?.billing,
+          shipping: item?.shipping,
+          payment:item?.payment,
+          stage:item?.stage,
+          length:item?.length,
+          breadth:item?.breadth,
+          height:item?.height,
+          weight:item?.weight,
+          product: [
+            {
+              product_id: item.product_id,
+              product: item.product,
+
+              color: item.color,
+              quantity: item.quantity,
+              //   product:item.product
+              price: item?.price,
+              discount: item?.discount,
+      
+            },
+          ],
+        });
+      } else {
+        transformedArray[existingOrderIndex].count_of_products++;
+        transformedArray[existingOrderIndex].product.push({
+          product_id: item.product_id,
+          product: item.product,
+
+          color: item.color,
+          quantity: item.quantity,
+          // product:item.product
+          price: item?.price,
+          discount: item?.discount,
+
+        });
+      }
+    });
+    res.status(200).send(transformedArray);
   } catch (err) {
     console.log(err);
-    res.status(400).send("Cart Not Created");
+    res.status(404).send({ message: "Something Went Wrong" });
+  }
+});
+
+
+router.post("/api/order/cancel", Authenticate, async (req, res) => {
+  try {
+    // const orders = await cancelOrder(req.body.order_id);
+const orders="happy"
+    // Fetch products based on product IDs
+
+    res.status(200).send(orders);
+  } catch (err) {
+    console.log(err);
+    res.status(404).send({ message: "Something Went Wrong" });
+  }
+});
+router.delete("/api/order/user/:id", Authenticate, async (req, res) => {
+  try {
+    const order_id = req.params.id;
+
+    const newOrder= await Order.updateMany({ order_id: order_id }, { active: false });
+
+
+    // Fetch products based on product IDs
+
+    res.status(200).send(newOrder);
+  } catch (err) {
+    console.log(err);
+    res.status(404).send({ message: "Something Went Wrong" });
+  }
+});
+router.post("/api/order/failed", Authenticate, async (req, res) => {
+  try {
+    const orders = await failOrder(req.body.order_id);
+
+    // Fetch products based on product IDs
+
+    res.status(200).send(orders);
+  } catch (err) {
+    console.log(err);
+    res.status(404).send({ message: "Something Went Wrong" });
+  }
+});
+router.post("/api/order/success", Authenticate, async (req, res) => {
+  try {
+    const orders = await successOrder(req.body.order_id);
+
+    // Fetch products based on product IDs
+    const { _id, tokens, password, active, ...data } = req.rootUser._doc;
+    if (orders?.items[0]?.status === "captured") {
+      await Cart.deleteMany({ user_id: _id });
+    }
+    res.status(200).send(orders);
+  } catch (err) {
+    console.log(err);
+    res.status(404).send({ message: "Something Went Wrong" });
+  }
+});
+router.patch("/api/order/stage/:id", IsAdmin, async (req, res) => {
+  try {
+    const orders = await updateState(req.body.order_id,req.body);
+
+    // Fetch products based on product IDs
+
+ console.log("orders",orders)
+    res.status(200).send(orders);
+  } catch (err) {
+    console.log(err);
+    res.status(404).send({ message: "Something Went Wrong" });
+  }
+});
+router.delete("/api/order/:id", Authenticate, async (req, res) => {
+  try {
+    const orders = await failOrder(req.body.order_id);
+
+    // Fetch products based on product IDs
+
+    res.status(200).send(orders);
+  } catch (err) {
+    console.log(err);
+    res.status(404).send({ message: "Something Went Wrong" });
   }
 });
 
