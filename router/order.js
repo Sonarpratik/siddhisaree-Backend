@@ -69,6 +69,7 @@ router.get("/api/order", async (req, res) => {
       if (existingOrderIndex === -1) {
         transformedArray.push({
           order_id: item.order_id,
+          order_details: item.order_details,
           user_id: item.user_id,
           count_of_products: 1,
           created_at: item.created_at,
@@ -131,7 +132,7 @@ router.get("/api/order/:id", IsAdminAndUser, async (req, res) => {
   try {
     const userId = req.params.id;
 
-    const order = await Order.find({ user_id: userId ,active:true});
+    const order = await Order.find({ user_id: userId ,active:true}).sort({ created_at: -1 });
     // Fetch products based on product IDs
     const productIds = order.map((item) => item.product_id);
 
@@ -157,6 +158,8 @@ router.get("/api/order/:id", IsAdminAndUser, async (req, res) => {
         transformedArray.push({
           order_id: item.order_id,
           count_of_products: 1,
+          order_details: item.order_details,
+
           created_at: item.created_at,
           payment: item.payment,
           billing: item?.billing,

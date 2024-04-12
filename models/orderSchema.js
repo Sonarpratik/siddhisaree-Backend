@@ -15,7 +15,7 @@ const orderSchema = new mongoose.Schema({
   // height: { type: Number },
   // weight: { type: Number },
 
-  stage:{type:String,default:"Pending"},
+  stage:{type:String,default:"PENDING"},
 
   product_id: { type: String, required: true },
   order_details: { type: String },

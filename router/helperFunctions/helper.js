@@ -294,22 +294,13 @@ const updateState = async (order_id, body) => {
       {
         $set: {
           stage: body.stage,
-          length: body.length,
-          breadth: body.breadth,
-          height: body.height,
-          weight: body.weight,
+          order_details:body.order_details,
         },
       }
     );
 
-    if (body?.go_to_shiprocket) {
-      const newOrder = await getProductFromOrderId(order_id);
-      const ShipRocket = await createShipRocketOrder(newOrder[0]);
-      return ShipRocket;
-    } else {
-      console.log("just stage update");
+console.log(body.order_details)
       return data;
-    }
   } catch (err) {
     console.log(err);
     return null;

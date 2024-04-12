@@ -140,7 +140,7 @@ router.get("/api/cart/:id", IsAdminAndUser, async (req, res) => {
     const cart = await Cart.findOne({ user_id: userId });
 
     if (!cart) {
-      res.status(200).send("no data");
+      res.status(200).json({message:"no data",products:[]});
     } else {
       const productIds = cart?.products?.map((item) => item.product_id);
       const productx = await Product.find({ _id: { $in: productIds } });
