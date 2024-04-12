@@ -210,7 +210,8 @@ router.get("/api/order/:id", IsAdminAndUser, async (req, res) => {
 router.post("/api/order/cancel", Authenticate, async (req, res) => {
   try {
     // const orders = await cancelOrder(req.body.order_id);
-const orders="happy"
+    const orders = await cancelOrder(req.body.order_id);
+
     // Fetch products based on product IDs
 
     res.status(200).send(orders);
