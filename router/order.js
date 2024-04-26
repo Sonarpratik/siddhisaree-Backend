@@ -128,12 +128,14 @@ console.log(startIndex, parseInt(startIndex) + parseInt(limit))
     res.status(404).send({ message: "Something Went Wrong" });
   }
 });
-router.get("/api/order/:id", IsAdminAndUser, async (req, res) => {
+router.get("/api/order/:id", Authenticate, async (req, res) => {
   try {
     const userId = req.params.id;
 
     const order = await Order.find({ user_id: userId ,active:true}).sort({ created_at: -1 });
     // Fetch products based on product IDs
+    if(order){
+
     const productIds = order.map((item) => item.product_id);
 
     // Fetch products based on product IDs
@@ -200,6 +202,9 @@ router.get("/api/order/:id", IsAdminAndUser, async (req, res) => {
       }
     });
     res.status(200).send(transformedArray);
+  }else{
+    res.status(404).send({ message: "No Orders" });
+  }
   } catch (err) {
     console.log(err);
     res.status(404).send({ message: "Something Went Wrong" });

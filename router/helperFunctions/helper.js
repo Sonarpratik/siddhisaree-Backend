@@ -294,6 +294,7 @@ const updateState = async (order_id, body) => {
       {
         $set: {
           stage: body.stage,
+          payment:body.payment,
           order_details:body.order_details,
         },
       }

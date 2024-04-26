@@ -29,6 +29,7 @@ const Authenticate = async (req, res, next) => {
     });
 
     if (!rootUser) {
+      console.log(rootUser)
       throw new Error("User not found");
     }else{
 
@@ -340,7 +341,7 @@ const IsAdminAndUser = async (req, res, next) => {
       _id: verfiyToken.userId,
       "tokens.token": token,
     });
-
+console.log(rootUser,"rootUser")
     if (!rootUser) {
       if (admin) {
         const { _id, role, ...data } = admin;

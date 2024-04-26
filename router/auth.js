@@ -102,6 +102,7 @@ router.post("/auth/login", async (req, res) => {
     }
 
     const userLogin = await User.findOne({ email: email });
+    console.log(userLogin)
     if (userLogin) {
       //if it is match then it stores inside the inMatch
       const inMatch = await bcrypt.compare(password, userLogin.password);

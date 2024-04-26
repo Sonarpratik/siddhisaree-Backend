@@ -53,6 +53,7 @@ app.use(require('./router/auth'))
 app.use('/aws',require('./router/aws'))
 // app.use(require('./router/auth'))
 app.use(require('./router/product'))
+
 app.use(require('./router/cart'))
 app.use(require('./router/order'))
 app.use(require('./router/payment'))
