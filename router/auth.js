@@ -17,8 +17,10 @@ const {
   IsSuper,
   IsAdmin_Product_Delete,
   IsAdminAndUserAnd_staff_patch_true,
+  IsAdminAndUserVerifyToken,
 
 } = require("../middleware/authenticate.js");
+const { SendMailFunction } = require("./helperFunctions/helper.js");
 
 router.get("/", (req, res) => {
   res.send("hello world in auth");
@@ -218,7 +220,21 @@ router.post("/auth/google/login", async (req, res) => {
 });
 
 
+router.post("/auth/forgot", async (req, res) => {
+  try {
 
+    const userLogin = await User.findOne({ email: req.body.email });
+    if(userLogin){
+
+      const del = await SendMailFunction(req.body.email,userLogin,res)
+      console.log(del)
+    }
+    res.status(200).send("done");
+  } catch (err) {
+    console.log(err)
+    res.status(401).send(err);
+  }
+});
 //Login Admin
 router.post("/auth/admin/login", async (req, res) => {
   try {
@@ -309,17 +325,20 @@ router.get("/auth/verify/admin", IsAdmin, (req, res) => {
 });
 
 //Only Admin Can Update
-router.patch("/auth/user/:id", IsAdminAndUser, async (req, res) => {
+router.patch("/auth/user/:id",IsAdminAndUserVerifyToken, async (req, res) => {
   try {
     const userId = req.params.id;
-    const { _id, ...data } = req.body;
-    console.log(req.body);
+    const { password, tokens, _id, ...data } = req.body;
+    if (password) {
+      data.password = await bcrypt.hash(password, 12);
+    }
+
     const did = await User.findByIdAndUpdate({ _id: userId }, data, {
       new: true,
     });
 
-    const { password, token, active, ...extra } = did._doc;
-    res.status(200).send(extra);
+    const {name,email,billing_address,shipping_address,active,...extra}=did
+    res.status(200).send({_id,name,email,billing_address,shipping_address,active});
   } catch (e) {
     console.log(e);
     res.status(404).send("You Dont Hvae the clearnce");
